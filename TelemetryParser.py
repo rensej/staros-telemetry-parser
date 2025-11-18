@@ -1,5 +1,4 @@
 from watchdog.observers import Observer
-from watchdog.observers.polling import PollingObserver
 import time
 from HeadersParser import HeadersParserBulk
 from LogParser import LogParserBulk
@@ -20,14 +19,12 @@ class TelemetryParser:
         if len(headers_init) == 0:
             self.log_parser.error("❌ No headers found, please check the configuration file and bulk file number.")
             exit(1)
-        print(f"✅ Headers loaded: {len(headers_init)} headers found.")
+        self.log_parser.info(f"✅ Headers loaded: {len(headers_init)} headers found.")
         #CSV HanlderInit
         bulk_handler = CSVHandlerOptimized(self.log_parser, headers_init, self.vars_app["DEST_CSV"])
         #Start observer for the folder indicated in WATCH_FOLDER
         #Observer() for linux based VM
-        # observer = Observer()
-        #PollingObserver for Windows docker VM
-        observer = PollingObserver()
+        observer = Observer()
         observer.schedule(bulk_handler, self.vars_app["WATCH_FOLDER"], recursive=False)
         observer.start()
         return observer
