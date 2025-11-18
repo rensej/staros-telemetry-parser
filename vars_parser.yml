@@ -1,5 +1,0 @@
-CONFIG_FILE: /shared/telemetry_parser/config_file/TOR-VPC-1.log
-WATCH_FOLDER: /shared/telemetry_parser/input/
-DEST_CSV: /shared/telemetry_parser/output/
-LOG_PATH: /shared/telemetry_parser/log/
-BULK_FILE_NUMBER: 2
