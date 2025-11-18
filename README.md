@@ -7,7 +7,17 @@ Bulkstat config file is needed with headers for reference inside of /config_file
 vars_parser.yml contains fundamental vars for telemetry parser:
 
 CONFIG_FILE: /shared/telemetry_parser/config_file/TOR-VPC-1.log --> 'show configuration bulkstats' for headers reference
+
 WATCH_FOLDER: /shared/telemetry_parser/input/ --> folder to monitor for incoming raw bulkstats
+
 DEST_CSV: /shared/telemetry_parser/output/ --> destination for genereated post processed bulkstat files
+
 LOG_PATH: /shared/telemetry_parser/log/ --> folder for generate 'debug.log' file with logging messages of parser application
+
 BULK_FILE_NUMBER: 2 --> number to indicate 'file <NUMBER>' insider of CONFIG_FILE
+
+-----------
+
+To start the application run following command indicating where vars.yml is located:
+
+python ParserInit.py "/shared/telemetry_parser/vars_parser.yml"
