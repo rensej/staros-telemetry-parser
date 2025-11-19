@@ -8,4 +8,3 @@ telemetry-parser/vars_parser_local
 *.pyc
 __pycache__/
 telemetry-parser/vars_parser_local.yml
-telemetry-parser/vars_parser.yml
