@@ -1,0 +1,11 @@
+telemetry-parser/collector-input/
+telemetry-parser/log/
+telemetry-parser/staros-config/
+telemetry-parser/telegraf-input/
+telemetry-parser/CP-COR01_bulkstats_20251016_170001_ART_15_15.csv
+telemetry-parser/UP-COR01_bulkstats_20251016_170001_ART_15_15.csv
+telemetry-parser/vars_parser_local
+*.pyc
+__pycache__/
+telemetry-parser/vars_parser_local.yml
+telemetry-parser/vars_parser.yml

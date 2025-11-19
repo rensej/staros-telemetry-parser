@@ -3,15 +3,23 @@ import os
 import re
 from pathlib import Path
 import time
+import yaml
 
 class CSVHandler(FileSystemEventHandler):
 
-    def __init__(self, logger, headers, dest_bulk):
+    def __init__(self, logger, headers, vars):
         self.logger = logger
         # build fast lookup: key -> header line (key is first 3 CSV fields joined by commas)
         self.header_map = headers
-        self.dest_bulk = Path(dest_bulk)
+        self.vars = vars
         self.filename_re = re.compile(r"^(.+)_bulkstats_(.+)", re.IGNORECASE)
+        self.inventory = self.read_inventory()
+
+    def read_inventory(self):
+        inventory = {}
+        with open(rf"{self.vars["CONFIG_FOLDER"]}{self.vars["INVENTORY_NAME"]}", 'r') as f:
+            inventory = yaml.safe_load(f)
+        return inventory
 
     def on_created(self, event):
         if not event.is_directory and event.src_path.lower().endswith('.csv'):
@@ -27,7 +35,7 @@ class CSVHandler(FileSystemEventHandler):
         hostname, timestamp = m.group(1), m.group(2)
         open_files = {}  # path_str -> file handle
         lines_processed = 0
-
+        dest_bulk = Path(self.vars["DEST_CSV"])
         try:
             with filepath.open('r', encoding='utf-8') as bulk_file:
                 self.logger.info("Start processing lines...")
@@ -37,20 +45,33 @@ class CSVHandler(FileSystemEventHandler):
                     if len(parts) < 3:
                         continue
                     key = ','.join(parts[:3])
-                    header = self.header_map.get(key)
+
+                    # Safe lookups to avoid KeyError if hostname not in inventory
+                    host_info = self.inventory.get(hostname)
+                    if not host_info:
+                        self.logger.warning(f"Unknown host in inventory: {hostname}")
+                        break
+
+                    type_check = self.header_map.get(self.inventory[hostname].get("TYPE"))
+                    if not type_check:
+                        self.logger.warning(f"No header map for TYPE={self.inventory[hostname].get("TYPE")} and hostname={hostname}")
+                        continue
+                    #Validate header for host check TYPE and BULK_FILE_NUMBER
+                    header = self.header_map[self.inventory[hostname].get("TYPE")][str(self.inventory[hostname].get("BULK_FILE_NUMBER"))].get(key)
                     if not header:
                         continue
+
                     lines_processed += 1
                     # construct destination filename
                     safe_key = key.replace(',', '_')
                     out_name = f"{hostname}_{safe_key}_{timestamp}.csv"
-                    out_path = str(self.dest_bulk / out_name)
+                    out_path = str(dest_bulk / out_name)
 
                     # open file handle once per destination file
                     fh = open_files.get(out_path)
                     if fh is None:
                         # create parent if needed
-                        self.dest_bulk.mkdir(parents=True, exist_ok=True)
+                        dest_bulk.mkdir(parents=True, exist_ok=True)
                         mode = 'a' if Path(out_path).exists() else 'w'
                         fh = open(out_path, mode, encoding='utf-8')
                         open_files[out_path] = fh
