@@ -49,14 +49,20 @@ class CSVHandler(FileSystemEventHandler):
                     # Safe lookups to avoid KeyError if hostname not in inventory
                     host_info = self.inventory.get(hostname)
                     if not host_info:
-                        self.logger.warning(f"Unknown host in inventory: {hostname}")
+                        self.logger.warning(f"❌ Unknown host in inventory: {hostname}")
+                        self.logger.info(f"👀 Watching for new CSV files in: {self.vars["WATCH_FOLDER"]}")
+                        break
+                  
+                    #Validate header for host check TYPE and BULK_FILE_NUMBER
+                    if self.inventory[hostname].get("TYPE") not in self.header_map:
+                        self.logger.warning(f"❌ No header exist for TYPE {self.inventory[hostname].get("TYPE")} for {hostname}")
+                        self.logger.info(f"👀 Watching for new CSV files in: {self.vars["WATCH_FOLDER"]}")
+                        break
+                    elif str(self.inventory[hostname].get("BULK_FILE_NUMBER")) not in self.header_map[self.inventory[hostname].get("TYPE")]:
+                        self.logger.warning(f"❌ No header exist for file  {self.inventory[hostname].get("BULK_FILE_NUMBER")} for {hostname}")
+                        self.logger.info(f"👀 Watching for new CSV files in: {self.vars["WATCH_FOLDER"]}")
                         break
 
-                    type_check = self.header_map.get(self.inventory[hostname].get("TYPE"))
-                    if not type_check:
-                        self.logger.warning(f"No header map for TYPE={self.inventory[hostname].get("TYPE")} and hostname={hostname}")
-                        continue
-                    #Validate header for host check TYPE and BULK_FILE_NUMBER
                     header = self.header_map[self.inventory[hostname].get("TYPE")][str(self.inventory[hostname].get("BULK_FILE_NUMBER"))].get(key)
                     if not header:
                         continue
@@ -86,5 +92,5 @@ class CSVHandler(FileSystemEventHandler):
                     fh.close()
                 except Exception:
                     pass
-
-        self.logger.info(f"Process complete! {lines_processed} matching lines processed")
+        if lines_processed > 0:
+            self.logger.info(f"Process complete! {lines_processed} matching lines processed")

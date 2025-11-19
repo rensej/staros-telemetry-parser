@@ -1,5 +1,4 @@
 from watchdog.observers import Observer
-from watchdog.observers.polling import PollingObserver
 import time
 from HeadersParser import HeadersParserBulk
 from BulkObserver import CSVHandler as CSVHandlerOptimized
@@ -32,7 +31,7 @@ class TelemetryParser:
         bulk_handler = CSVHandlerOptimized(self.log_parser, headers_init, self.vars)
         #Start observer for the folder indicated in WATCH_FOLDER
         #Observer() for linux based VM
-        observer = PollingObserver()
+        observer = Observer()
         observer.schedule(bulk_handler, self.vars["WATCH_FOLDER"], recursive=False)
         observer.start()
         return observer
