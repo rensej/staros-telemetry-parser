@@ -1,0 +1,17 @@
+
+services:
+  sftp:
+    build:
+      context: ./
+      dockerfile: ./SftpServerDockerFile
+    image: sftp-server:1.0
+    container_name: sftp-server
+    ports:
+      - "2222:22"  # Map host port 2222 to container port 22
+    volumes:
+      - collector-input:/collector-input  
+    restart: always
+
+volumes:
+  collector-input:
+    external: true

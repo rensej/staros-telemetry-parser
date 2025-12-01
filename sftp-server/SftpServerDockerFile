@@ -1,0 +1,32 @@
+# Use Ubuntu 24.04 as the base image
+FROM ubuntu:24.04
+
+# Set the environment variables for non-interactive installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install the necessary packages for OpenSSH and SFTP
+RUN apt-get update && \
+    apt-get install -y \
+    openssh-server \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create the 'telemetry' user with password 'Telemetry2025'
+RUN useradd -m telemetry && \
+    echo "telemetry:Telemetry2025" | chpasswd && \
+    mkdir /home/telemetry/.ssh && \
+    chown telemetry:telemetry /home/telemetry/.ssh && \
+    chmod 700 /home/telemetry/.ssh
+
+# Configure SSH to allow password authentication
+RUN echo "PermitRootLogin no" >> /etc/ssh/sshd_config && \
+    echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config && \
+    echo "ChallengeResponseAuthentication no" >> /etc/ssh/sshd_config && \
+    echo "UsePAM yes" >> /etc/ssh/sshd_config && \
+    echo "Subsystem sftp /usr/lib/openssh/sftp-server" >> /etc/ssh/sshd_config && \
+    echo "Port 22" >> /etc/ssh/sshd_config
+
+# Expose port 22 for SFTP
+EXPOSE 22
+
+# Run SSHD in the foreground
+CMD ["/usr/sbin/sshd", "-D"]

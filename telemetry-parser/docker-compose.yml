@@ -1,0 +1,25 @@
+services:
+  telemetry-parser:
+    image: telemetry-parser:1.0
+    entrypoint: ["python3", "ParserInit.py", "/telemetry-parser/vars_parser.yml"]
+    build: 
+      context: ./
+      dockerfile: ./TelemetryParserDockerFile
+    container_name: telemetry-parser
+    volumes:
+      - telegraf-input:/telegraf-input
+      - collector-setup:/collector-setup
+      - staros-config:/staros-config
+      - collector-input:/collector-input
+    restart: unless-stopped
+
+volumes:
+  telegraf-input:
+    external: true
+  collector-setup:
+    external: true
+  staros-config:
+    external: true
+  collector-input:
+    external: true
+
