@@ -3,6 +3,8 @@ FROM ubuntu:24.04
 
 # Set the environment variables for non-interactive installation
 ENV DEBIAN_FRONTEND=noninteractive
+ENV http_proxy="http://172.16.254.5:6789"
+ENV https_proxy="http://172.16.254.5:6789"
 
 # Install the necessary packages for OpenSSH and SFTP
 RUN apt-get update && \

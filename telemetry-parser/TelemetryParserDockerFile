@@ -3,6 +3,8 @@ FROM ubuntu:24.04
 
 # Set environment variable to non-interactive (avoids prompts during installation)
 ENV DEBIAN_FRONTEND=noninteractive
+ENV http_proxy="http://172.16.254.5:6789"
+ENV https_proxy="http://172.16.254.5:6789"
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
