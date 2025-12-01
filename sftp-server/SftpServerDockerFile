@@ -12,6 +12,9 @@ RUN apt-get update && \
     openssh-server \
     && rm -rf /var/lib/apt/lists/*
 
+# Create the required directory for privilege separation
+RUN mkdir -p /run/sshd && chmod 0755 /run/sshd
+
 # Create the 'telemetry' user with password 'Telemetry2025'
 RUN useradd -m telemetry && \
     echo "telemetry:Telemetry2025" | chpasswd && \
