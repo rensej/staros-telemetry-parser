@@ -8,7 +8,7 @@ services:
     container_name: sftp-server
     working_dir: /collector-input
     ports:
-      - "2222:22"  # Map host port 2222 to container port 22
+      - "22:22"  # Map host port 22 to container port 22
     volumes:
       - collector-input:/collector-input  
     restart: always
