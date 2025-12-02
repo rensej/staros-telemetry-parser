@@ -28,8 +28,7 @@ RUN echo "PermitRootLogin no" >> /etc/ssh/sshd_config && \
     echo "ChallengeResponseAuthentication no" >> /etc/ssh/sshd_config && \
     echo "UsePAM yes" >> /etc/ssh/sshd_config && \
     echo "Subsystem sftp /usr/lib/openssh/sftp-server" >> /etc/ssh/sshd_config && \
-    echo "Port 22" >> /etc/ssh/sshd_config && \
-    echo "ChrootDirectory /collector-input" >> /etc/ssh/sshd_config
+    echo "Port 22" >> /etc/ssh/sshd_config 
 
 # Expose port 22 for SFTP
 EXPOSE 22
