@@ -8,7 +8,7 @@ services:
     container_name: telemetry-parser
     volumes:
       - telegraf-input:/telegraf-input
-      - ./vars-parser.yml:/telemetry-parser/vars_parser.yml
+      - ./vars_parser.yml:/telemetry-parser/vars_parser.yml
       - staros-config:/staros-config
       - collector-input:/collector-input
     restart: unless-stopped
