@@ -1,4 +1,5 @@
 import logging
+import os
 from logging.handlers import RotatingFileHandler
 
 class LogParserBulk:
@@ -11,8 +12,14 @@ class LogParserBulk:
         logger = logging.getLogger()
         logger.setLevel(logging.DEBUG)
 
+        # Ensure  log directory exists
+        if  not os.path.exists(logPath):
+            os.makedirs(logPath)
+            print(f"✅ Created log directory: {logPath}")
+        else:
+            print(f"ℹ️  Log directory exists: {logPath}")    
         # Create handlers
-        file_handler = RotatingFileHandler(f"{logPath}/debug.log", maxBytes=50*1024, backupCount= 7)
+        file_handler = RotatingFileHandler(f"{logPath}/debug_parser.log", maxBytes=50*1024, backupCount= 7)
         console_handler = logging.StreamHandler()
 
         # Set log levels

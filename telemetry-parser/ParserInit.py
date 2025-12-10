@@ -16,26 +16,46 @@ def print_config(config_vars, log_parser):
     print()
 
 def check_path_exists(path, description, log_parser):
+
     if not os.path.exists(path):
-        log_parser.error(f"❌ {description} does not exist: {path}")
-        exit(1)
+        log_parser.warning(f"❌ {description} does not exist: {path}")
+        os.makedirs(path)
+        log_parser.info(f"✅ Creating {description}: {path}")
+        # exit(1)
+    else:
+        log_parser.info(f"✅ {description} exists: {path}")
 
 def start_app(config_vars, log_parser):
-    #Check if WATCH_FOLDER exists
+    #Create WATCH_FOLDER if it does not exist
     check_path_exists(config_vars["WATCH_FOLDER"], "WATCH_FOLDER", log_parser)
 
-    #Check if CONFIG_FOLDER exists
+    #Create CONFIG_FOLDER if it does not exist 
     check_path_exists(config_vars["CONFIG_FOLDER"], "CONFIG_FOLDER", log_parser)
 
     #Create DEST_CSV folder if it does not exist
-    if not os.path.exists(config_vars["DEST_CSV"]):
-        os.makedirs(config_vars["DEST_CSV"])
-        log_parser.info(f"✅ Created DEST_CSV folder: {config_vars["DEST_CSV"]}")  
+    check_path_exists(config_vars["DEST_CSV"], "DEST_CSV", log_parser)
          
     #Check if inventory file exists
     inventory_path = os.path.join(config_vars["CONFIG_FOLDER"], config_vars["INVENTORY_NAME"])
-    check_path_exists(inventory_path, "Inventory file", log_parser)
-
+    if not os.path.isfile(inventory_path):
+        log_parser.warning(f"❌ Inventory file does not exist: {inventory_path}")
+        log_parser.warning("Creating default inventory template...")
+        default_inventory_content = """# Default Inventory Template
+# Please fill in the required fields
+CP-COR01:
+  TYPE: CP
+  BULK_FILE_NUMBER: 2
+UP-COR01:
+  TYPE: UP
+  BULK_FILE_NUMBER: 2
+"""
+        with open(inventory_path, 'w') as f:
+            f.write(default_inventory_content)
+            f.close()
+        log_parser.info(f"✅ Default inventory template created at: {inventory_path}")
+    else:
+        log_parser.info(f"✅ Inventory file exists: {inventory_path}")
+     #   exit(1)
     log_parser.info("\nStarting the app with this configuration:")
     print_config(config_vars, log_parser)
     telemetry_parser = TelemetryParser(config_vars, log_parser)

@@ -8,3 +8,4 @@ telemetry-parser/vars_parser_local
 *.pyc
 __pycache__/
 telemetry-parser/vars_parser_local.yml
+telemetry-parser/example_files/UP-COR02_bulkstats_20251016_170001_ART_15_15.csv

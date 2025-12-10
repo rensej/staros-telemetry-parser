@@ -1,5 +1,5 @@
 CONFIG_FOLDER: /staros-config/
 WATCH_FOLDER: /collector-input/
 DEST_CSV: /telegraf-input/
-LOG_PATH: /shared/telemetry_parser/log/
+LOG_PATH: /telemetry_parser/log/
 INVENTORY_NAME: inventory.yml
