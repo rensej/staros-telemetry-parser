@@ -19,7 +19,7 @@ def check_path_exists(path, description, log_parser):
 
     if not os.path.exists(path):
         log_parser.warning(f"❌ {description} does not exist: {path}")
-        os.makedirs(path)
+        os.makedirs(path, exist_ok=True)
         log_parser.info(f"✅ Creating {description}: {path}")
         # exit(1)
     else:

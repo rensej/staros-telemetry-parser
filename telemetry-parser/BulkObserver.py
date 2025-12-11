@@ -42,9 +42,16 @@ class CSVHandler(FileSystemEventHandler):
         actual_inventory = self.read_inventory()
         host_info = actual_inventory.get(hostname)
         if not host_info:
-            self.logger.warning(f"❌ Unknown host in inventory: {hostname}")
-            self.logger.info(f"👀 Watching for new CSV files in: {self.vars["WATCH_FOLDER"]}")
-            return
+            self.logger.warning(f"❌ Unknown host in inventory: {hostname} trying to reload inventory...")
+            #Try to reload inventory if hostname not found
+            actual_inventory = self.read_inventory()
+            host_info = actual_inventory.get(hostname)
+            if not host_info:
+                self.logger.warning(f"❌ Hostname {hostname} still not found in inventory. Please check the inventory file in {self.vars["CONFIG_FOLDER"]}")
+                self.logger.info(f"👀 Watching for new CSV files in: {self.vars["WATCH_FOLDER"]}")
+                return
+            else:
+                self.logger.info(f"✅ Hostname {hostname} found in inventory after reloading...")
          #Validate header table is not empy and exists for host, check TYPE and BULK_FILE_NUMBER
         if len(self.header_map) == 0:
             #Try to reload header map if empty
@@ -55,7 +62,7 @@ class CSVHandler(FileSystemEventHandler):
                 return
         #Validate TYPE exist in header map
         elif actual_inventory[hostname].get("TYPE") not in self.header_map:
-            self.logger.warning(f"❌ No header found for TYPE {actual_inventory[hostname].get("TYPE")} for {hostname} trying to reload header map.")
+            self.logger.warning(f"❌ No header found for TYPE {actual_inventory[hostname].get("TYPE")} for {hostname} trying to reload header map...")
             #Try to reload header map if no header exists for TYPE
             self.header_map = HeadersParserBulk(self.vars, self.logger).headers
             if actual_inventory[hostname].get("TYPE") not in self.header_map:
@@ -63,10 +70,10 @@ class CSVHandler(FileSystemEventHandler):
                 self.logger.info(f"👀 Watching for new CSV files in: {self.vars["WATCH_FOLDER"]}") 
                 return
             else:
-                self.logger.info(f"✅ Header found for TYPE {actual_inventory[hostname].get("TYPE")} after reloading header map.")
+                self.logger.info(f"✅ Header found for TYPE {actual_inventory[hostname].get("TYPE")} after reloading header map...")
         #Validate BULK_FILE_NUMBER exists in header map for TYPE
         elif str(actual_inventory[hostname].get("BULK_FILE_NUMBER")) not in self.header_map[actual_inventory[hostname].get("TYPE")]:
-            self.logger.warning(f"❌ No header found for file  {actual_inventory[hostname].get("BULK_FILE_NUMBER")} for {hostname} trying to reload header map.")
+            self.logger.warning(f"❌ No header found for file  {actual_inventory[hostname].get("BULK_FILE_NUMBER")} for {hostname} trying to reload header map...")
             #Try to reload header map if  file not exists for TYPE
             self.header_map = HeadersParserBulk(self.vars, self.logger).headers  
             if str(actual_inventory[hostname].get("BULK_FILE_NUMBER")) not in self.header_map[actual_inventory[hostname].get("TYPE")]:
@@ -114,6 +121,18 @@ class CSVHandler(FileSystemEventHandler):
                     fh.close()
                 except Exception:
                     pass
-        if lines_processed > 0:
-            self.logger.info(f"Process complete! {lines_processed} matching lines processed")
-            self.logger.info(f"👀 Watching for new CSV files in: {self.vars["WATCH_FOLDER"]}")
+            if lines_processed > 0:
+                self.logger.info(f"Process complete! {lines_processed} matching lines processed")
+            
+            #Delete raw bulkstats file after processing
+            try:
+                os.remove(filepath)
+                self.logger.info(f"✅ Deleted processed file: {filepath}")
+                self.logger.info(f"👀 Watching for new CSV files in: {self.vars["WATCH_FOLDER"]}")
+
+            except Exception as e:
+                self.logger.warning(f"❌ Could not delete file: {filepath}. Error: {e}")
+                self.logger.info(f"👀 Watching for new CSV files in: {self.vars["WATCH_FOLDER"]}")
+
+
+
