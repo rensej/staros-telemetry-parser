@@ -22,6 +22,13 @@ class CSVHandler(FileSystemEventHandler):
             inventory = yaml.safe_load(f)
         return inventory
 
+    def remove_file_if_exists(self, filepath):
+        try:
+            os.remove(filepath)
+            self.logger.info(f"✅ Deleted file: {filepath}")
+        except Exception as e:
+            self.logger.warning(f"❌ Could not delete file: {filepath}. Error: {e}")
+
     def on_created(self, event):
         if not event.is_directory and event.src_path.lower().endswith('.csv'):
             self.logger.info(f"📄 New CSV file detected: {event.src_path}")
@@ -48,38 +55,53 @@ class CSVHandler(FileSystemEventHandler):
             host_info = actual_inventory.get(hostname)
             if not host_info:
                 self.logger.warning(f"❌ Hostname {hostname} still not found in inventory. Please check the inventory file in {self.vars["CONFIG_FOLDER"]}")
+                self.logger.info(f"❌ Deleting unprocessable file: {filepath}")
+                self.remove_file_if_exists(filepath)
                 self.logger.info(f"👀 Watching for new CSV files in: {self.vars["WATCH_FOLDER"]}")
                 return
             else:
                 self.logger.info(f"✅ Hostname {hostname} found in inventory after reloading...")
+        else:
+            self.logger.info(f"✅ Hostname {hostname} found in inventory")
          #Validate header table is not empy and exists for host, check TYPE and BULK_FILE_NUMBER
         if len(self.header_map) == 0:
             #Try to reload header map if empty
+            self.logger.warning(f"❌ Header map is empty, trying to reload header map...")
             self.header_map = HeadersParserBulk(self.vars, self.logger).headers
             if len(self.header_map) == 0:
                 self.logger.warning(f"❌ No headers found in header map.\nPlease add at least {actual_inventory[hostname].get("TYPE")}.log file in {self.vars["CONFIG_FOLDER"]} ")
+                self.logger.info(f"❌ Deleting unprocessable file: {filepath}")
+                self.remove_file_if_exists(filepath)
                 self.logger.info(f"👀 Watching for new CSV files in: {self.vars["WATCH_FOLDER"]}")
                 return
         #Validate TYPE exist in header map
-        elif actual_inventory[hostname].get("TYPE") not in self.header_map:
+        if actual_inventory[hostname].get("TYPE") not in self.header_map:
             self.logger.warning(f"❌ No header found for TYPE {actual_inventory[hostname].get("TYPE")} for {hostname} trying to reload header map...")
             #Try to reload header map if no header exists for TYPE
             self.header_map = HeadersParserBulk(self.vars, self.logger).headers
             if actual_inventory[hostname].get("TYPE") not in self.header_map:
                 self.logger.warning(f"❌ No header exist for TYPE {actual_inventory[hostname].get("TYPE")} for {hostname} please add the configuration file in {self.vars["CONFIG_FOLDER"]}")
-                self.logger.info(f"👀 Watching for new CSV files in: {self.vars["WATCH_FOLDER"]}") 
+                self.logger.info(f"❌ Deleting unprocessable file: {filepath}")
+                self.remove_file_if_exists(filepath)
+                self.logger.info(f"👀 Watching for new CSV files in: {self.vars["WATCH_FOLDER"]}")
                 return
             else:
                 self.logger.info(f"✅ Header found for TYPE {actual_inventory[hostname].get("TYPE")} after reloading header map...")
+        else:
+            self.logger.info(f"✅ Header found for TYPE {actual_inventory[hostname].get("TYPE")} checking if BULK_FILE_NUMBER exists...")
         #Validate BULK_FILE_NUMBER exists in header map for TYPE
-        elif str(actual_inventory[hostname].get("BULK_FILE_NUMBER")) not in self.header_map[actual_inventory[hostname].get("TYPE")]:
+        if str(actual_inventory[hostname].get("BULK_FILE_NUMBER")) not in self.header_map[actual_inventory[hostname].get("TYPE")]:
             self.logger.warning(f"❌ No header found for file  {actual_inventory[hostname].get("BULK_FILE_NUMBER")} for {hostname} trying to reload header map...")
             #Try to reload header map if  file not exists for TYPE
             self.header_map = HeadersParserBulk(self.vars, self.logger).headers  
             if str(actual_inventory[hostname].get("BULK_FILE_NUMBER")) not in self.header_map[actual_inventory[hostname].get("TYPE")]:
                 self.logger.warning(f"❌ No header exist for file {actual_inventory[hostname].get("BULK_FILE_NUMBER")} for {hostname} please add the configuration file in {self.vars["CONFIG_FOLDER"]}")
+                self.logger.info(f"❌ Deleting unprocessable file: {filepath}")
+                self.remove_file_if_exists(filepath)
                 self.logger.info(f"👀 Watching for new CSV files in: {self.vars["WATCH_FOLDER"]}")
                 return
+        else:
+            self.logger.info(f"✅ Header found for file {actual_inventory[hostname].get("BULK_FILE_NUMBER")} for {hostname} proceeding to process file...")
         #Star processing lines
         try:
             with filepath.open('r', encoding='utf-8') as bulk_file:
@@ -123,16 +145,12 @@ class CSVHandler(FileSystemEventHandler):
                     pass
             if lines_processed > 0:
                 self.logger.info(f"Process complete! {lines_processed} matching lines processed")
-            
-            #Delete raw bulkstats file after processing
-            try:
-                os.remove(filepath)
-                self.logger.info(f"✅ Deleted processed file: {filepath}")
+                #Delete raw bulkstats file after processing
+                self.remove_file_if_exists(filepath)
+            else:
+                self.logger.info("No matching lines found, nothing processed.")
                 self.logger.info(f"👀 Watching for new CSV files in: {self.vars["WATCH_FOLDER"]}")
-
-            except Exception as e:
-                self.logger.warning(f"❌ Could not delete file: {filepath}. Error: {e}")
-                self.logger.info(f"👀 Watching for new CSV files in: {self.vars["WATCH_FOLDER"]}")
+ 
 
 
 
