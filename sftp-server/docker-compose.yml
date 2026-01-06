@@ -13,6 +13,11 @@ services:
       - collector-input:/collector-input
       - staros-config:/staros-config
     restart: always
+    command: >
+      sh -c "
+        chown -R telemetry:telemetry /collector-input && 
+        chown -R telemetry:telemetry /staros-config
+      "
 
 volumes:
   collector-input:
