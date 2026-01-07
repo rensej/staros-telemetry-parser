@@ -16,8 +16,8 @@ services:
     command: >
       sh -c "
         chown -R telemetry:telemetry /collector-input && 
-        chown -R telemetry:telemetry /staros-config &&
-        exec /usr/sbin/sshd -D
+        chown -R telemetry:telemetry /staros-config && 
+        /usr/sbin/sshd -D
       "
 
 volumes:
