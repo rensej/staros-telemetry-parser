@@ -20,7 +20,8 @@ RUN useradd -m telemetry && \
     echo "telemetry:Telemetry2025" | chpasswd && \
     mkdir /home/telemetry/.ssh && \
     chown telemetry:telemetry /home/telemetry/.ssh && \
-    chmod 700 /home/telemetry/.ssh
+    chmod 700 /home/telemetry/.ssh \
+    chown telemetry:telemetry 
 
 # Configure SSH to allow password authentication
 RUN echo "PermitRootLogin no" >> /etc/ssh/sshd_config && \

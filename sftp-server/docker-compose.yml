@@ -10,9 +10,18 @@ services:
     ports:
       - "22:22"  # Map host port 22 to container port 22
     volumes:
-      - collector-input:/collector-input  
+      - collector-input:/collector-input
+      - staros-config:/staros-config
     restart: always
+    command: >
+      sh -c "
+        chown -R telemetry:telemetry /collector-input && 
+        chown -R telemetry:telemetry /staros-config && 
+        /usr/sbin/sshd -D
+      "
 
 volumes:
   collector-input:
+    external: true
+  staros-config:
     external: true
