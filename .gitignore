@@ -8,5 +8,7 @@ telemetry-parser/vars_parser_local
 *.pyc
 __pycache__/
 telemetry-parser/vars_parser_local.yml
-telemetry-parser/example_files
-
+telemetry-parser/example_files/
+telemetry-parser/example_files/CP.log
+telemetry-parser/example_files/inventory.yml
+telemetry-parser/example_files/UP.log
