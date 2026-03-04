@@ -15,7 +15,59 @@ class CSVHandler(FileSystemEventHandler):
         self.vars = vars
         self.filename_re = re.compile(r"^(.+)_bulkstats_(.+)", re.IGNORECASE)
         self.inventory = self.read_inventory()
+        self.processing_pool = set() # Track files currently in flight
 
+    def wait_for_file_ready(self, filepath, timeout=5):
+        """
+        Attempts to open the file in append mode to check if the OS has 
+        released the write lock.
+        """
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            try:
+                # If we can open it for appending, it's usually finished writing
+                with open(filepath, 'a'):
+                    return True
+            except (IOError, OSError):
+                # File is still being written to by another process
+                time.sleep(0.2)
+        return False
+
+    def handle_file_event(self, filepath):
+        """Unified entry point for both Created and Modified events"""
+        if filepath in self.processing_pool:
+            return # Already being handled, ignore duplicate trigger
+        print("ENTRA")
+        try:
+            self.processing_pool.add(filepath)
+            # A) If it's a CSV (Bulkstat data)
+            if filepath.lower().endswith('.csv'):
+                if os.path.commonpath([filepath, self.vars["WATCH_FOLDER"]]) in self.vars["WATCH_FOLDER"]:
+                    self.logger.info(f"📄 New CSV file detected: {filepath}")
+                    if self.wait_for_file_ready(filepath):
+                        self.process_csv(filepath)
+                    else:
+                        self.logger.error(f"❌ Timeout: File {filepath} is still locked by another process.")
+                        return
+            # B) If it's a YAML/YML (Configuration or Inventory)
+            elif filepath.lower().endswith(('.log', '.yaml', 'yml')):
+                if os.path.commonpath([filepath, self.vars["CONFIG_FOLDER"]]) in self.vars["CONFIG_FOLDER"]:
+                    self.logger.info(f"⚙️ Processing Config Change: {filepath}")
+                    
+                    if os.path.basename(filepath) in self.vars["INVENTORY_NAME"]:
+                        self.logger.info(f"📋 Updating Inventory...")
+                        self.inventory = self.read_inventory()
+                        self.logger.info(f"👀 Watching for new CSV files in: {self.vars["WATCH_FOLDER"]}")
+                    else:
+                        self.logger.info(f"📜 Headers file modified reloading ...")
+                        self.header_map = HeadersParserBulk(self.vars, self.logger).headers
+                        self.logger.info(f"👀 Watching for new CSV files in: {self.vars["WATCH_FOLDER"]}")
+        finally:
+            # Always remove from pool so the file can be processed again 
+            # if a NEW version arrives later
+            if filepath in self.processing_pool:
+                self.processing_pool.remove(filepath)
+        
     def read_inventory(self):
         inventory = {}
         with open(rf"{self.vars["CONFIG_FOLDER"]}{self.vars["INVENTORY_NAME"]}", 'r') as f:
@@ -30,39 +82,13 @@ class CSVHandler(FileSystemEventHandler):
             self.logger.warning(f"❌ Could not delete file: {filepath}. Error: {e}")
 
     def on_created(self, event):
-        #Process only files with .csv extension and ignore directories, also ensure the file is within the watch folder to prevent processing files from other locations
-        if not event.is_directory and event.src_path.lower().endswith('.csv'):
-            if os.path.commonpath([event.src_path, self.vars["WATCH_FOLDER"]]) == self.vars["WATCH_FOLDER"]:        
-                self.logger.info(f"📄 New bulk file detected: {event.src_path}")
-                # small delay to allow file write to complete
-                time.sleep(0.5)
-                self.process_csv(event.src_path)
-        #Process config files changes to update header map, ignore directories and non config files (YML/YAML), also ensure the file is within the config folder to prevent processing files from other locations
-        elif not event.is_directory and not event.src_path.lower().endswith('.yml') and not event.src_path.lower().endswith('.yaml'):
-            if os.path.commonpath([event.src_path, self.vars["CONFIG_FOLDER"]]) == self.vars["CONFIG_FOLDER"]:
-                self.logger.info(f"📄 New config file detected: {event.src_path}. Reloading header map...")
-                self.header_map = HeadersParserBulk(self.vars, self.logger).headers
-        else:
-            self.logger.info(f"⚠️ Ignored non bulk or headers file: {event.src_path}")
-            if not event.is_directory:
-                self.remove_file_if_exists(event.src_path)
-            return
-
+        if not event.is_directory:
+            self.handle_file_event(event.src_path)
+      
     def on_modified(self, event):
-        #Process config files changes to update header map, ignore directories and non config files (YML/YAML), also ensure the file is within the config folder to prevent processing files from other locations
-        if not event.is_directory and not event.src_path.lower().endswith('.csv'):
-            if os.path.commonpath([event.src_path, self.vars["CONFIG_FOLDER"]]) == self.vars["CONFIG_FOLDER"]:
-                self.logger.info(f"📄 Config file modified: {event.src_path}. Reloading header map...")
-                self.header_map = HeadersParserBulk(self.vars, self.logger).headers
-        elif not event.is_directory and os.path.basename(event.src_path) == self.vars["INVENTORY_NAME"]:
-            self.logger.info(f"📄 Inventory file modified: {event.src_path}")
-            self.inventory = self.read_inventory()
-        else:
-            self.logger.info(f"⚠️ Ignored file modification: {event.src_path}")
-            if not event.is_directory:
-                self.remove_file_if_exists(event.src_path)
-            return
-
+        if not event.is_directory:
+            self.handle_file_event(event.src_path)
+    
     def process_csv(self, filepath):
         filepath = Path(filepath)
         basename = filepath.name
@@ -73,7 +99,6 @@ class CSVHandler(FileSystemEventHandler):
         dest_bulk = Path(self.vars["DEST_CSV"])
         
         # Safe lookups to avoid KeyError if hostname not in inventory
-        # actual_inventory = self.inventory
         host_info = self.inventory.get(hostname)
         if not host_info:
             self.logger.warning(f"❌ Unknown host in inventory: {hostname} trying to reload inventory...")
@@ -134,7 +159,6 @@ class CSVHandler(FileSystemEventHandler):
         try:
             with filepath.open('r', encoding='utf-8') as bulk_file:
                 self.logger.info("Start processing lines...")
-
                 for line in bulk_file:
                     # get first 3 csv fields
                     parts = line.split(',', 3)
