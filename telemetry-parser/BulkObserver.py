@@ -37,7 +37,6 @@ class CSVHandler(FileSystemEventHandler):
         """Unified entry point for both Created and Modified events"""
         if filepath in self.processing_pool:
             return # Already being handled, ignore duplicate trigger
-        print("ENTRA")
         try:
             self.processing_pool.add(filepath)
             # A) If it's a CSV (Bulkstat data)
